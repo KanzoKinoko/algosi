@@ -1,48 +1,187 @@
+
 #include "natural_merge_sort.h"
+
+#include <algorithm>
+#include <cstdio>
+#include <fstream>
+#include <string>
+#include <vector>
+
+namespace
+{
+    void mergeRuns(
+        std::ifstream& left,
+        std::ifstream& right,
+        std::ofstream& output,
+        int leftSize,
+        int rightSize)
+    {
+        int a = 0, b = 0;
+
+        bool hasA = leftSize > 0 && static_cast<bool>(left >> a);
+        bool hasB = rightSize > 0 && static_cast<bool>(right >> b);
+
+        while (hasA && hasB)
+        {
+            if (a <= b)
+            {
+                output << a << ' ';
+                --leftSize;
+                hasA = leftSize > 0 && static_cast<bool>(left >> a);
+            }
+            else
+            {
+                output << b << ' ';
+                --rightSize;
+                hasB = rightSize > 0 && static_cast<bool>(right >> b);
+            }
+        }
+
+        while (hasA)
+        {
+            output << a << ' ';
+            --leftSize;
+            hasA = leftSize > 0 && static_cast<bool>(left >> a);
+        }
+
+        while (hasB)
+        {
+            output << b << ' ';
+            --rightSize;
+            hasB = rightSize > 0 && static_cast<bool>(right >> b);
+        }
+    }
+}
 
 std::vector<int> naturalMergeSort(std::vector<int> arr, int size)
 {
+    size = std::min(size, static_cast<int>(arr.size()));
+
+    if (size <= 1)
+        return arr;
+
+    {
+        std::ofstream file("natural_input.txt");
+
+        for (int i = 0; i < size; ++i)
+            file << arr[i] << ' ';
+    }
+
+    std::string source = "natural_input.txt";
+    std::string outputFile = "natural_output_a.txt";
+
     while (true)
     {
-        std::vector<int> result;
-        int i = 0;
-        int runs = 0;
+        std::vector<int> leftRuns;
+        std::vector<int> rightRuns;
 
-        while (i < size)
+
         {
-            int mid = i + 1;
-            while (mid < size && arr[mid - 1] <= arr[mid])
-                mid++;
+            std::ifstream input(source);
+            std::ofstream left("natural_left.txt");
+            std::ofstream right("natural_right.txt");
 
-            if (mid == size)
-            {
-                for (int k = i; k < size; k++)
-                    result.push_back(arr[k]);
-                runs++;
+            int previous;
+
+            if (!(input >> previous))
                 break;
-            }
 
-            int end = mid + 1;
-            while (end < size && arr[end - 1] <= arr[end])
-                end++;
+            int runIndex = 0;
+            int runSize = 1;
 
-            int a = i, b = mid;
-            while (a < mid && b < end)
+            std::ofstream* target = &left;
+            target->clear();
+            *target << previous << ' ';
+
+            int current;
+
+            while (input >> current)
             {
-                if (arr[a] <= arr[b]) result.push_back(arr[a++]);
-                else result.push_back(arr[b++]);
+                if (current < previous)
+                {
+                    if (runIndex % 2 == 0)
+                        leftRuns.push_back(runSize);
+                    else
+                        rightRuns.push_back(runSize);
+
+                    ++runIndex;
+                    runSize = 1;
+
+                    target = (runIndex % 2 == 0)
+                        ? &left
+                        : &right;
+                }
+                else
+                {
+                    ++runSize;
+                }
+
+                *target << current << ' ';
+                previous = current;
             }
 
-            while (a < mid) result.push_back(arr[a++]);
-            while (b < end) result.push_back(arr[b++]);
-
-            runs++;
-            i = end;
+            if (runIndex % 2 == 0)
+                leftRuns.push_back(runSize);
+            else
+                rightRuns.push_back(runSize);
         }
 
-        arr = result;
-        if (runs <= 1) break;
+        int runs = static_cast<int>(
+            leftRuns.size() + rightRuns.size());
+
+  
+        if (runs <= 1)
+            break;
+
+  
+        {
+            std::ifstream left("natural_left.txt");
+            std::ifstream right("natural_right.txt");
+            std::ofstream output(outputFile);
+
+            for (int i = 0;
+                 i < static_cast<int>(leftRuns.size());
+                 ++i)
+            {
+                int leftSize = leftRuns[i];
+
+                int rightSize =
+                    i < static_cast<int>(rightRuns.size())
+                    ? rightRuns[i]
+                    : 0;
+
+                mergeRuns(
+                    left, right, output,
+                    leftSize, rightSize);
+            }
+        }
+
+        std::remove("natural_left.txt");
+        std::remove("natural_right.txt");
+
+        if (source != "natural_input.txt")
+            std::remove(source.c_str());
+
+        source = outputFile;
+
+        outputFile = (outputFile == "natural_output_a.txt")
+            ? "natural_output_b.txt"
+            : "natural_output_a.txt";
     }
+
+
+    {
+        std::ifstream result(source);
+
+        for (int i = 0; i < size; ++i)
+            result >> arr[i];
+    }
+
+    std::remove("natural_input.txt");
+    std::remove("natural_left.txt");
+    std::remove("natural_right.txt");
+    std::remove("natural_output_a.txt");
+    std::remove("natural_output_b.txt");
 
     return arr;
 }

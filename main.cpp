@@ -37,8 +37,8 @@ void testSort(SortFunction sort)
 
     SECTION("random_order")
     {
-        std::vector<int> arr = {3, 1, 5, 2, 4};
-        std::vector<int> ans = {1, 2, 3, 4, 5};
+        std::vector<int> arr = {4,0,15,6,12,2,14,8};
+        std::vector<int> ans = {0, 2, 4, 6, 8, 12, 14, 15};
 
         REQUIRE(sort(arr, static_cast<int>(arr.size())) == ans);
     }
